@@ -6,25 +6,42 @@ function App() {
   const [playerName, setPlayerName] = useState('Hero');
   const [questLog, setQuestLog] = useState([]);
 
-  useEffect(() => {
-    const loadPlayer = async () => {
-      try {
-        const res = await axios.get('https://realscape-brain.vercel.app/get-player');
-        setPlayerName(res.data.name || 'Hero');
-        setXp(res.data.xp || 0);
-      } catch (err) {
-        console.log('No player yet');
-      }
-    };
-    loadPlayer();
-  }, []);
+useEffect(() => {
+  const loadPlayer = async () => {
+    try {
+      const res = await axios.get('https://realscape-brain.vercel.app/get-player');
+      setPlayerName(res.data.name || 'Hero');
+      setXp(res.data.xp || 0);
+    } catch (err) {
+      console.log('No player yet');
+    }
+  };
 
+  const loadQuestLog = async () => {
+    try {
+      const res = await axios.get('https://realscape-brain.vercel.app/get-quest-log');
+      setQuestLog(res.data);
+    } catch (err) {
+      console.log('Quest log error');
+    }
+  };
 
-const loadQuestLog = async () => {
-  const res = await axios.get('https://realscape-brain.vercel.app/get-quest-log');
-  setQuestLog(res.data);
+  loadPlayer();
+  loadQuestLog();  // ← Now inside useEffect!
+}, []);
+
+// Fixed updateName — reloads player data after saving name
+const updateName = async (newName) => {
+  setPlayerName(newName);
+  try {
+    await axios.post('https://realscape-brain.vercel.app/update-name', { name: newName });
+    // RELOAD FRESH DATA FROM BRAIN
+    const res = await axios.get('https://realscape-brain.vercel.app/get-player');
+    setPlayerName(res.data.name || 'Hero');
+  } catch (err) {
+    console.error('Name save failed', err);
+  }
 };
-loadQuestLog();
 
 
 
