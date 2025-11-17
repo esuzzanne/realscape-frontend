@@ -30,15 +30,26 @@ loadQuestLog();
 
 const completeQuest = async (amount, questName) => {
   try {
+    // 1. Add XP first
     await axios.get('https://realscape-brain.vercel.app/add-xp');
-    await axios.post('https://realscape-brain.vercel.app/log-quest', { questName, xp: amount });
-    const newXp = xp + amount;
-    setXp(newXp);
-    const updatedLog = await axios.get('https://realscape-brain.vercel.app/get-quest-log');
-    setQuestLog(updatedLog.data);
-    alert(`✅ ${questName} Complete! +${amount} XP → ${playerName || 'Hero'} has ${newXp} XP`);
-  } catch {
-    alert('⚠️ Brain offline!');
+    
+    // 2. Log the quest
+    await axios.post('https://realscape-brain.vercel.app/log-quest', { 
+      questName, 
+      xp: amount 
+    });
+
+    // 3. Refresh player data + quest log
+    const playerRes = await axios.get('https://realscape-brain.vercel.app/get-player');
+    const logRes = await axios.get('https://realscape-brain.vercel.app/get-quest-log');
+
+    setXp(playerRes.data.xp);
+    setQuestLog(logRes.data);
+
+    alert(`✅ ${questName} Complete! +${amount} XP → ${playerName} now has ${playerRes.data.xp} XP`);
+  } catch (err) {
+    console.error(err);
+    alert('⚠️ Quest failed — check internet or try again!');
   }
 };
 
