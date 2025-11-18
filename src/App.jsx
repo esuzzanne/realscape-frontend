@@ -27,60 +27,47 @@ useEffect(() => {
   };
 
   loadPlayer();
-  loadQuestLog();  // ← Now inside useEffect!
+  loadQuestLog();  // Now inside useEffect — updates on every refresh!
 }, []);
 
-// Fixed updateName — reloads player data after saving name
+// Fixed completeQuest — full flow with error logging
+const completeQuest = async (amount, questName) => {
+  try {
+    console.log('Starting quest:', questName); // Debug log
+    await axios.get(`https://realscape-brain.vercel.app/add-xp?amount=${amount}`);
+    
+    await axios.post('https://realscape-brain.vercel.app/log-quest', { 
+      questName, 
+      xp: amount 
+    });
+
+    // Reload everything from brain
+    const playerRes = await axios.get('https://realscape-brain.vercel.app/get-player');
+    const logRes = await axios.get('https://realscape-brain.vercel.app/get-quest-log');
+    
+    setXp(playerRes.data.xp);
+    setQuestLog(logRes.data);
+
+    alert(`✅ ${questName} Complete! +${amount} XP → ${playerRes.data.name} now has ${playerRes.data.xp} XP`);
+    console.log('Quest complete!'); // Debug log
+  } catch (err) {
+    console.error('Quest error:', err); // Log the real error
+    alert(`⚠️ Quest failed: ${err.message} — Check console for details!`);
+  }
+};
+
+// Fixed updateName — reloads fresh data after save
 const updateName = async (newName) => {
+  if (!newName.trim()) return;
   setPlayerName(newName);
   try {
     await axios.post('https://realscape-brain.vercel.app/update-name', { name: newName });
     // RELOAD FRESH DATA FROM BRAIN
     const res = await axios.get('https://realscape-brain.vercel.app/get-player');
     setPlayerName(res.data.name || 'Hero');
+    console.log('Name saved and reloaded:', res.data.name); // Debug log
   } catch (err) {
-    console.error('Name save failed', err);
-  }
-};
-
-
-
-const completeQuest = async (amount, questName) => {
-  try {
-    const res = await axios.get(`https://realscape-brain.vercel.app/add-xp?amount=${amount}`);
-    await axios.post('https://realscape-brain.vercel.app/log-quest', { questName, xp: amount });
-    
-    // Refresh everything from brain
-    const playerRes = await axios.get('https://realscape-brain.vercel.app/get-player');
-    const logRes = await axios.get('https://realscape-brain.vercel.app/get-quest-log');
-    
-    setXp(playerRes.data.xp);
-    setPlayerName(playerRes.data.name || 'Hero');
-    setQuestLog(logRes.data);
-    
-    alert(`✅ ${questName} Complete! +${amount} XP`);
-  } catch (err) {
-    alert('Quest failed — but brain is online!');
-  }
-};
-
-
-
-
-
-
-
-
-const updateName = async (newName) => {
-  if (!newName.trim()) return;
-  setPlayerName(newName);
-  try {
-    await axios.post('https://realscape-brain.vercel.app/update-name', { name: newName });
-    // Force reload from brain to confirm save
-    const res = await axios.get('https://realscape-brain.vercel.app/get-player');
-    setPlayerName(res.data.name || 'Hero');
-  } catch (err) {
-    console.error('Name save failed', err);
+    console.error('Name save failed:', err);
   }
 };
 
